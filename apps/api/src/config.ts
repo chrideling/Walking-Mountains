@@ -11,10 +11,6 @@ export const config = {
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
   },
 
-  redis: {
-    url: process.env.REDIS_URL ?? 'redis://localhost:6379',
-  },
-
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY ?? '',
   },

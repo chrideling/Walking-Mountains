@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: walking-mountains-api
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npm run db:generate && npm run build --workspace=packages/types && npm run build --workspace=apps/api
+    startCommand: node apps/api/dist/index.js
+    preDeployCommand: npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false          # Set this to your Neon connection string in Render dashboard
+      - key: ANTHROPIC_API_KEY
+        sync: false          # Set this in Render dashboard
+      - key: FRONTEND_URL
+        sync: false          # Set this to your Cloudflare Pages URL e.g. https://walking-mountains.pages.dev
+      - key: JWT_SECRET
+        generateValue: true  # Render generates a secure random value automatically
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: API_PORT
+        value: 3001

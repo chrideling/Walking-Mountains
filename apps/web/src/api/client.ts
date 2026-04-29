@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/store/auth'
 
-const BASE_URL = '/api'
+// In dev, Vite proxies /api → localhost:3001. In production, point to Render URL.
+const BASE_URL = (import.meta.env.VITE_API_URL ?? '') + '/api'
 
 class ApiError extends Error {
   constructor(
