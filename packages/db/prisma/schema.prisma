@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Domain {
+  BODY
+  MIND
+  WORLD
+}
+
+enum Presence {
+  CLIMBING
+  WALKING
+  IN_SIGHT
+}
+
+enum PathType {
+  HILL_DIRECTED
+  OPEN
+}
+
+enum PathStatus {
+  ACTIVE
+  RESTING
+  COMPLETE
+}
+
+enum StepType {
+  PATH
+  FREE
+}
+
+enum StepSource {
+  MANUAL
+  VOICE
+  AUTO
+}
+
+enum EnergyLevel {
+  CLEAR
+  HAZY
+  FOGGY
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  mountains          Mountain[]
+  steps              Step[]
+  biometricSnapshots BiometricSnapshot[]
+  journalEntries     JournalEntry[]
+  checkIns           CheckIn[]
+  integrations       Integration[]
+  refreshTokens      RefreshToken[]
+}
+
+model Mountain {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  domain      Domain
+  presence    Presence @default(WALKING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hills Hill[]
+  paths Path[]
+}
+
+model Hill {
+  id               String    @id @default(cuid())
+  mountainId       String
+  name             String
+  targetDate       DateTime
+  targetMetric     String?
+  prepWindowDays   Int       @default(42)
+  energyDemand     String?
+  reflectionPrompt String?
+  summitedAt       DateTime?
+  result           String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  mountain Mountain @relation(fields: [mountainId], references: [id], onDelete: Cascade)
+  paths    Path[]
+}
+
+model Path {
+  id          String     @id @default(cuid())
+  mountainId  String
+  hillId      String?
+  name        String
+  description String?
+  type        PathType
+  status      PathStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  mountain Mountain @relation(fields: [mountainId], references: [id], onDelete: Cascade)
+  hill     Hill?    @relation(fields: [hillId], references: [id], onDelete: SetNull)
+  steps    Step[]
+}
+
+model Step {
+  id         String     @id @default(cuid())
+  userId     String
+  pathId     String?
+  content    String
+  type       StepType
+  source     StepSource @default(MANUAL)
+  emojiRating String?
+  aiResponse String?
+  loggedAt   DateTime   @default(now())
+  createdAt  DateTime   @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  path Path? @relation(fields: [pathId], references: [id], onDelete: SetNull)
+}
+
+model BiometricSnapshot {
+  id             String   @id @default(cuid())
+  userId         String
+  date           DateTime @db.Date
+  hrv            Float?
+  sleepScore     Int?
+  restingHr      Int?
+  stressScore    Int?
+  spo2           Float?
+  bodyBattery    Int?
+  activeCalories Int?
+  steps          Int?
+  source         String   @default("manual")
+  createdAt      DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weatherState WeatherState?
+
+  @@unique([userId, date])
+}
+
+model WeatherState {
+  id                  String      @id @default(cuid())
+  biometricSnapshotId String      @unique
+  energyLevel         EnergyLevel
+  narrativeLine       String
+  baselineDelta       Float?
+  createdAt           DateTime    @default(now())
+
+  biometricSnapshot BiometricSnapshot @relation(fields: [biometricSnapshotId], references: [id], onDelete: Cascade)
+}
+
+model JournalEntry {
+  id              String   @id @default(cuid())
+  userId          String
+  content         String
+  voiceTranscript String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CheckIn {
+  id           String    @id @default(cuid())
+  userId       String
+  weekOf       DateTime  @db.Date
+  aiSummary    String
+  aiQuestion   String
+  userResponse String?
+  respondedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekOf])
+}
+
+model Integration {
+  id           String    @id @default(cuid())
+  userId       String
+  provider     String
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  metadata     Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-stone-50 text-stone-900;
+  }
+
+  /* Prevent layout shift from scrollbar */
+  html {
+    overflow-y: scroll;
+  }
+}
+
+@layer utilities {
+  .domain-body {
+    @apply border-body-300 bg-body-50;
+  }
+  .domain-mind {
+    @apply border-mind-300 bg-mind-50;
+  }
+  .domain-world {
+    @apply border-world-300 bg-world-50;
+  }
+
+  /* Energy / weather backgrounds */
+  .weather-clear {
+    @apply bg-weather-clear;
+  }
+  .weather-hazy {
+    @apply bg-weather-hazy;
+  }
+  .weather-foggy {
+    @apply bg-weather-foggy;
+  }
+}
