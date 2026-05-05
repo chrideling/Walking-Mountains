@@ -9,12 +9,13 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
     "build": "npm run build --workspace=packages/types && npm run build --workspace=packages/db && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
-    "db:generate": "npm run generate --workspace=packages/db",
-    "db:migrate": "npm run migrate --workspace=packages/db",
-    "db:studio": "npm run studio --workspace=packages/db"
+    "db:generate": "dotenv -e .env -- npm run generate --workspace=packages/db",
+    "db:migrate": "dotenv -e .env -- npm run migrate --workspace=packages/db",
+    "db:studio": "dotenv -e .env -- npm run studio --workspace=packages/db"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "dotenv-cli": "^7.4.2",
     "typescript": "^5.4.5"
   }
 }
