@@ -207,7 +207,7 @@ export function MountainPage() {
 
 // Separate component so each path fetches its own stats independently
 function PathCard({ path, onLogStep }: { path: Path; onLogStep: () => void }) {
-  const { data: stats } = useStepStats({ pathId: path.id })
+  const { data: stats, isLoading: statsLoading } = useStepStats({ pathId: path.id })
 
   return (
     <Card className="p-4">
@@ -221,12 +221,16 @@ function PathCard({ path, onLogStep }: { path: Path; onLogStep: () => void }) {
         </span>
       </div>
 
-      {stats && (
+      {statsLoading ? (
+        <div className="border-t border-stone-100 pt-3 mt-3">
+          <div className="h-3 w-32 bg-stone-100 rounded animate-pulse" />
+        </div>
+      ) : (
         <PathStepSummary
           pathId={path.id}
-          todaySteps={stats.todaySteps}
-          todayCount={stats.todayCount}
-          weekCount={stats.weekCount}
+          todaySteps={stats?.todaySteps ?? []}
+          todayCount={stats?.todayCount ?? 0}
+          weekCount={stats?.weekCount ?? 0}
         />
       )}
 
