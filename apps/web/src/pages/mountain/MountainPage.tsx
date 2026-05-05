@@ -2,14 +2,16 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ChevronRight, Plus } from 'lucide-react'
 import { useMountain, useUpdateMountain } from '@/hooks/useMountains'
+import { useStepStats } from '@/hooks/useSteps'
 import { DomainBadge } from '@/components/ui/DomainBadge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { AddHillSheet } from '@/components/mountains/AddHillSheet'
 import { AddPathSheet } from '@/components/mountains/AddPathSheet'
 import { LogStepSheet } from '@/components/steps/LogStepSheet'
+import { PathStepSummary } from '@/components/steps/StepList'
 import { DOMAIN_COLORS, PRESENCE_ICONS, PRESENCE_LABELS, daysUntil, formatDate } from '@/lib/domain'
-import type { Presence } from '@wm/types'
+import type { Path, Presence } from '@wm/types'
 import { clsx } from 'clsx'
 
 export function MountainPage() {
@@ -21,6 +23,7 @@ export function MountainPage() {
   const [showAddHill, setShowAddHill] = useState(false)
   const [showAddPath, setShowAddPath] = useState(false)
   const [showLogStep, setShowLogStep] = useState(false)
+  const [logStepPathId, setLogStepPathId] = useState<string | undefined>()
 
   if (isLoading) {
     return (
@@ -41,6 +44,11 @@ export function MountainPage() {
 
   function setPresence(presence: Presence) {
     update.mutate({ presence })
+  }
+
+  function openLogStep(pathId?: string) {
+    setLogStepPathId(pathId)
+    setShowLogStep(true)
   }
 
   return (
@@ -72,7 +80,6 @@ export function MountainPage() {
               <button
                 key={p}
                 onClick={() => setPresence(p)}
-                title={PRESENCE_LABELS[p]}
                 className={clsx(
                   'px-3 py-1.5 rounded-xl text-xs font-medium border transition-all',
                   mountain.presence === p
@@ -109,23 +116,7 @@ export function MountainPage() {
           </p>
         ) : (
           activePaths.map((path) => (
-            <Card key={path.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-stone-900">{path.name}</p>
-                  {path.description && <p className="text-xs text-stone-500 mt-0.5">{path.description}</p>}
-                </div>
-                <span className="text-2xs text-stone-400 border border-stone-200 rounded-full px-2 py-0.5 shrink-0 ml-2">
-                  {path.type === 'HILL_DIRECTED' ? 'Hill-directed' : 'Open'}
-                </span>
-              </div>
-              <button
-                onClick={() => setShowLogStep(true)}
-                className="mt-3 w-full text-left text-xs text-stone-400 hover:text-stone-600 border-t border-stone-100 pt-3"
-              >
-                + Log a step on this path
-              </button>
-            </Card>
+            <PathCard key={path.id} path={path} onLogStep={() => openLogStep(path.id)} />
           ))
         )}
       </section>
@@ -193,9 +184,9 @@ export function MountainPage() {
         </section>
       )}
 
-      {/* Quick step log */}
+      {/* Free step */}
       <div className="pt-2 border-t border-stone-100">
-        <Button variant="secondary" className="w-full" onClick={() => setShowLogStep(true)}>
+        <Button variant="secondary" className="w-full" onClick={() => openLogStep(undefined)}>
           <Plus className="h-4 w-4 mr-2" />
           Log a free step
         </Button>
@@ -205,13 +196,47 @@ export function MountainPage() {
         <AddHillSheet mountainId={mountain.id} onClose={() => setShowAddHill(false)} />
       )}
       {showAddPath && (
-        <AddPathSheet
-          mountainId={mountain.id}
-          hills={allHills}
-          onClose={() => setShowAddPath(false)}
+        <AddPathSheet mountainId={mountain.id} hills={allHills} onClose={() => setShowAddPath(false)} />
+      )}
+      {showLogStep && (
+        <LogStepSheet pathId={logStepPathId} onClose={() => setShowLogStep(false)} />
+      )}
+    </div>
+  )
+}
+
+// Separate component so each path fetches its own stats independently
+function PathCard({ path, onLogStep }: { path: Path; onLogStep: () => void }) {
+  const { data: stats } = useStepStats({ pathId: path.id })
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-stone-900">{path.name}</p>
+          {path.description && <p className="text-xs text-stone-500 mt-0.5">{path.description}</p>}
+        </div>
+        <span className="text-2xs text-stone-400 border border-stone-200 rounded-full px-2 py-0.5 shrink-0">
+          {path.type === 'HILL_DIRECTED' ? 'Hill-directed' : 'Open'}
+        </span>
+      </div>
+
+      {stats && (
+        <PathStepSummary
+          pathId={path.id}
+          todaySteps={stats.todaySteps}
+          todayCount={stats.todayCount}
+          weekCount={stats.weekCount}
         />
       )}
-      {showLogStep && <LogStepSheet onClose={() => setShowLogStep(false)} />}
-    </div>
+
+      <button
+        onClick={onLogStep}
+        className="mt-3 w-full text-left text-xs text-stone-400 hover:text-stone-600 border-t border-stone-100 pt-3 flex items-center gap-1"
+      >
+        <Plus className="h-3 w-3" />
+        Log a step on this path
+      </button>
+    </Card>
   )
 }
