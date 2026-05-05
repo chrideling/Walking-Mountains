@@ -8,6 +8,7 @@ import { TodayPage } from '@/pages/today/TodayPage'
 import { MountainPage } from '@/pages/mountain/MountainPage'
 import { CoachPage } from '@/pages/coach/CoachPage'
 import { CheckinPage } from '@/pages/checkin/CheckinPage'
+import { SettingsPage } from '@/pages/settings/SettingsPage'
 import type { ReactNode } from 'react'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/mountain/:id" element={<ProtectedRoute><MountainPage /></ProtectedRoute>} />
         <Route path="/coach" element={<ProtectedRoute><CoachPage /></ProtectedRoute>} />
         <Route path="/checkin" element={<ProtectedRoute><CheckinPage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
         {/* Default */}
         <Route path="/" element={<Navigate to="/landscape" replace />} />

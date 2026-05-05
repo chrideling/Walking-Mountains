@@ -12,6 +12,7 @@ import { todayRoutes } from './routes/today.js'
 import { checkinRoutes } from './routes/checkin.js'
 import { aiRoutes } from './routes/ai.js'
 import { biometricRoutes } from './routes/biometrics.js'
+import { garminRoutes } from './routes/garmin.js'
 
 const app = Fastify({
   logger: {
@@ -46,6 +47,7 @@ await app.register(todayRoutes, { prefix: '/api/today' })
 await app.register(checkinRoutes, { prefix: '/api/checkin' })
 await app.register(aiRoutes, { prefix: '/api/ai' })
 await app.register(biometricRoutes, { prefix: '/api/biometrics' })
+await app.register(garminRoutes, { prefix: '/api/garmin' })
 
 app.get('/health', async () => ({ status: 'ok', ts: new Date().toISOString() }))
 

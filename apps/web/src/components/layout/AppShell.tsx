@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { clsx } from 'clsx'
 import type { ReactNode } from 'react'
-import { Mountain, Sun, MessageCircle, CheckSquare, User } from 'lucide-react'
+import { Mountain, Sun, MessageCircle, CheckSquare, Settings } from 'lucide-react'
 
 interface AppShellProps {
   children: ReactNode
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/today', icon: Sun, label: 'Today' },
   { to: '/coach', icon: MessageCircle, label: 'Coach' },
   { to: '/checkin', icon: CheckSquare, label: 'Check-in' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
 export function AppShell({ children }: AppShellProps) {
@@ -24,8 +25,8 @@ export function AppShell({ children }: AppShellProps) {
         <Link to="/landscape" className="flex items-center gap-2">
           <span className="text-stone-900 font-medium tracking-tight">Walking Mountains</span>
         </Link>
-        <Link to="/profile" className="p-1.5 rounded-full hover:bg-stone-100 transition-colors">
-          <User className="h-4 w-4 text-stone-500" />
+        <Link to="/settings" className="p-1.5 rounded-full hover:bg-stone-100 transition-colors">
+          <Settings className="h-4 w-4 text-stone-500" />
         </Link>
       </header>
 
