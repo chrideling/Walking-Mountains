@@ -1,13 +1,20 @@
-import { GarminConnect } from 'garmin-connect'
+import garminConnectPkg from 'garmin-connect'
 import { prisma } from '@wm/db'
 import { computeWeatherState } from './weather.js'
+
+const { GarminConnect } = garminConnectPkg as unknown as {
+  GarminConnect: new (opts: { username: string; password: string }) => {
+    login: (username: string, password: string) => Promise<void>
+    getSleepData: (date: Date) => Promise<unknown>
+  }
+}
 
 interface GarminCredentials {
   username: string
   password: string
 }
 
-async function makeClient(credentials: GarminCredentials): Promise<GarminConnect> {
+async function makeClient(credentials: GarminCredentials) {
   const client = new GarminConnect({ username: credentials.username, password: credentials.password })
   await client.login(credentials.username, credentials.password)
   return client
@@ -45,7 +52,7 @@ export async function syncGarminData(userId: string, days = 7): Promise<{ synced
     password: integration.accessToken, // accessToken field stores the password for this unofficial API
   }
 
-  let client: GarminConnect
+  let client: Awaited<ReturnType<typeof makeClient>>
   try {
     client = await makeClient(credentials)
   } catch {
@@ -60,28 +67,16 @@ export async function syncGarminData(userId: string, days = 7): Promise<{ synced
     try {
       const dateStr = date.toISOString().split('T')[0]
 
-      // Fetch in parallel — individual failures are caught below
-      const [sleepData, hrvData, stressData] = await Promise.allSettled([
-        client.getSleep(date),
-        client.getHrv(date),
-        client.getDailyStress(date),
-      ])
-
-      const sleep = sleepData.status === 'fulfilled' ? sleepData.value : null
-      const hrv = hrvData.status === 'fulfilled' ? hrvData.value : null
-      const stress = stressData.status === 'fulfilled' ? stressData.value : null
+      const sleep = await client.getSleepData(date)
 
       // Extract values — Garmin's response shape varies, guard carefully
       const sleepScore = (sleep as any)?.dailySleepDTO?.sleepScores?.overall?.value ?? null
-      const restingHr = (sleep as any)?.dailySleepDTO?.restingHeartRate ?? null
-
-      // HRV: last night 5-min high is the closest to standard HRV reading
-      const hrvValue =
-        (hrv as any)?.hrvSummary?.lastNight5MinHigh ??
-        (hrv as any)?.hrvSummary?.weeklyAvg ??
+      const restingHr =
+        (sleep as any)?.restingHeartRate ??
+        (sleep as any)?.dailySleepDTO?.restingHeartRate ??
         null
-
-      const stressScore = (stress as any)?.avgStressLevel ?? null
+      const hrvValue = (sleep as any)?.avgOvernightHrv ?? null
+      const stressScore = (sleep as any)?.dailySleepDTO?.avgSleepStress ?? null
 
       // Only upsert if we got at least one meaningful value
       if (sleepScore == null && hrvValue == null && stressScore == null && restingHr == null) {
