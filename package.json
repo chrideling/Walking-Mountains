@@ -7,8 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
-    "build": "npm run build --workspace=packages/types && npm run build --workspace=packages/db && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
+    "dev:packages": "npm run build --workspace=packages/types && dotenv -e .env -- npm run build --workspace=packages/db",
+    "dev": "npm run dev:packages && concurrently \"dotenv -e .env -- npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
+    "build": "npm run build --workspace=packages/types && dotenv -e .env -- npm run build --workspace=packages/db && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
     "db:generate": "dotenv -e .env -- npm run generate --workspace=packages/db",
     "db:migrate": "dotenv -e .env -- npm run migrate --workspace=packages/db",
     "db:studio": "dotenv -e .env -- npm run studio --workspace=packages/db"

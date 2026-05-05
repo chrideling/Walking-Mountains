@@ -1,5 +1,5 @@
 export const config = {
-  port: parseInt(process.env.API_PORT ?? '3001'),
+  port: parseInt(process.env.API_PORT ?? '3002'),
   host: process.env.API_HOST ?? '0.0.0.0',
   nodeEnv: process.env.NODE_ENV ?? 'development',
   frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:5173',
