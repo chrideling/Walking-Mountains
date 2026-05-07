@@ -9,9 +9,12 @@ import { Card } from '@/components/ui/Card'
 import { AddHillSheet } from '@/components/mountains/AddHillSheet'
 import { AddPathSheet } from '@/components/mountains/AddPathSheet'
 import { LogStepSheet } from '@/components/steps/LogStepSheet'
+import { PlanStepSheet } from '@/components/steps/PlanStepSheet'
+import { ExecuteStepSheet } from '@/components/steps/ExecuteStepSheet'
+import { PlannedStepCard } from '@/components/steps/PlannedStepCard'
 import { PathStepSummary } from '@/components/steps/StepList'
 import { DOMAIN_COLORS, PRESENCE_ICONS, PRESENCE_LABELS, daysUntil, formatDate } from '@/lib/domain'
-import type { Path, Presence } from '@wm/types'
+import type { Path, Step, Presence } from '@wm/types'
 import { clsx } from 'clsx'
 
 export function MountainPage() {
@@ -24,6 +27,8 @@ export function MountainPage() {
   const [showAddPath, setShowAddPath] = useState(false)
   const [showLogStep, setShowLogStep] = useState(false)
   const [logStepPathId, setLogStepPathId] = useState<string | undefined>()
+  const [planStepPathId, setPlanStepPathId] = useState<string | undefined>()
+  const [executeStep, setExecuteStep] = useState<Step | undefined>()
 
   if (isLoading) {
     return (
@@ -44,11 +49,6 @@ export function MountainPage() {
 
   function setPresence(presence: Presence) {
     update.mutate({ presence })
-  }
-
-  function openLogStep(pathId?: string) {
-    setLogStepPathId(pathId)
-    setShowLogStep(true)
   }
 
   return (
@@ -116,7 +116,13 @@ export function MountainPage() {
           </p>
         ) : (
           activePaths.map((path) => (
-            <PathCard key={path.id} path={path} onLogStep={() => openLogStep(path.id)} />
+            <PathCard
+              key={path.id}
+              path={path}
+              onLogStep={() => { setLogStepPathId(path.id); setShowLogStep(true) }}
+              onPlanStep={() => setPlanStepPathId(path.id)}
+              onStartStep={setExecuteStep}
+            />
           ))
         )}
       </section>
@@ -186,7 +192,7 @@ export function MountainPage() {
 
       {/* Free step */}
       <div className="pt-2 border-t border-stone-100">
-        <Button variant="secondary" className="w-full" onClick={() => openLogStep(undefined)}>
+        <Button variant="secondary" className="w-full" onClick={() => { setLogStepPathId(undefined); setShowLogStep(true) }}>
           <Plus className="h-4 w-4 mr-2" />
           Log a free step
         </Button>
@@ -201,22 +207,52 @@ export function MountainPage() {
       {showLogStep && (
         <LogStepSheet pathId={logStepPathId} onClose={() => setShowLogStep(false)} />
       )}
+      {planStepPathId && (
+        <PlanStepSheet pathId={planStepPathId} onClose={() => setPlanStepPathId(undefined)} />
+      )}
+      {executeStep && (
+        <ExecuteStepSheet step={executeStep} onClose={() => setExecuteStep(undefined)} />
+      )}
     </div>
   )
 }
 
 // Separate component so each path fetches its own steps independently
-function PathCard({ path, onLogStep }: { path: Path; onLogStep: () => void }) {
+function PathCard({
+  path,
+  onLogStep,
+  onPlanStep,
+  onStartStep,
+}: {
+  path: Path
+  onLogStep: () => void
+  onPlanStep: () => void
+  onStartStep: (step: Step) => void
+}) {
   const weekAgo = new Date()
   weekAgo.setDate(weekAgo.getDate() - 7)
   weekAgo.setHours(0, 0, 0, 0)
 
-  const { data: steps = [], isLoading } = useSteps({ pathId: path.id, since: weekAgo.toISOString(), limit: 50 })
+  const nextWeek = new Date()
+  nextWeek.setDate(nextWeek.getDate() + 7)
+
+  const { data: doneSteps = [], isLoading } = useSteps({
+    pathId: path.id,
+    status: 'DONE',
+    since: weekAgo.toISOString(),
+    limit: 50,
+  })
+
+  const { data: plannedSteps = [] } = useSteps({
+    pathId: path.id,
+    status: 'PLANNED',
+    limit: 5,
+  })
 
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
-  const todaySteps = steps.filter((s) => new Date(s.loggedAt) >= todayStart)
-  const weekCount = steps.length
+  const todaySteps = doneSteps.filter((s) => new Date(s.loggedAt) >= todayStart)
+  const weekCount = doneSteps.length
 
   return (
     <Card className="p-4">
@@ -229,6 +265,15 @@ function PathCard({ path, onLogStep }: { path: Path; onLogStep: () => void }) {
           {path.type === 'HILL_DIRECTED' ? 'Hill-directed' : 'Open'}
         </span>
       </div>
+
+      {/* Planned steps */}
+      {plannedSteps.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {plannedSteps.map((step) => (
+            <PlannedStepCard key={step.id} step={step} onStart={onStartStep} />
+          ))}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="border-t border-stone-100 pt-3 mt-3">
@@ -243,13 +288,22 @@ function PathCard({ path, onLogStep }: { path: Path; onLogStep: () => void }) {
         />
       )}
 
-      <button
-        onClick={onLogStep}
-        className="mt-3 w-full text-left text-xs text-stone-400 hover:text-stone-600 border-t border-stone-100 pt-3 flex items-center gap-1"
-      >
-        <Plus className="h-3 w-3" />
-        Log a step on this path
-      </button>
+      <div className="mt-3 border-t border-stone-100 pt-3 flex gap-4">
+        <button
+          onClick={onLogStep}
+          className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600"
+        >
+          <Plus className="h-3 w-3" />
+          Log a step
+        </button>
+        <button
+          onClick={onPlanStep}
+          className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600"
+        >
+          <Plus className="h-3 w-3" />
+          Plan a step
+        </button>
+      </div>
     </Card>
   )
 }

@@ -1,4 +1,4 @@
-import { Domain, EnergyLevel, PathStatus, PathType, Presence, StepSource, StepType } from './enums.js'
+import { Domain, EnergyLevel, PathStatus, PathType, Presence, StepSource, StepStatus, StepType } from './enums.js'
 
 export interface User {
   id: string
@@ -53,18 +53,40 @@ export interface Path {
   steps?: Step[]
 }
 
+export interface StepAction {
+  id: string
+  stepId: string
+  order: number
+  actionName: string
+  actionVolume: string | null
+  actionEffort: string | null
+  instruction: string | null
+  doneVolume: string | null
+  doneEffort: string | null
+  completedAt: string | null
+}
+
 export interface Step {
   id: string
   pathId: string | null
   userId: string
-  content: string
+  name: string | null
+  content: string | null
   type: StepType
+  status: StepStatus
   source: StepSource
   emojiRating: string | null
+  effortRating: number | null
+  qualityRating: number | null
+  completionScore: number | null
   aiResponse: string | null
+  aiProposed: boolean
+  scheduledFor: string | null
+  completedAt: string | null
   loggedAt: string
   createdAt: string
   path?: Path | null
+  actions?: StepAction[]
 }
 
 export interface BiometricSnapshot {
@@ -117,7 +139,7 @@ export interface TodayViewItem {
   domain: Domain
   title: string
   subtitle: string | null
-  type: 'path_step' | 'hill_proximity' | 'deferred' | 'calendar' | 'ai_suggestion'
+  type: 'path_step' | 'hill_proximity' | 'deferred' | 'calendar' | 'ai_suggestion' | 'planned_step'
   sourceId: string | null
   scaledNote: string | null
 }

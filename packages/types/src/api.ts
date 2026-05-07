@@ -1,4 +1,4 @@
-import { Domain, EnergyLevel, PathStatus, PathType, Presence, StepSource, StepType } from './enums.js'
+import { Domain, EnergyLevel, PathStatus, PathType, Presence, StepSource, StepStatus, StepType } from './enums.js'
 
 // Auth
 export interface RegisterBody {
@@ -78,13 +78,60 @@ export interface UpdatePathBody {
 }
 
 // Steps
+export interface StepActionInput {
+  actionName: string
+  actionVolume?: string
+  actionEffort?: string
+  instruction?: string
+}
+
 export interface CreateStepBody {
   pathId?: string
-  content: string
+  name?: string
+  content?: string
   type: StepType
+  status?: StepStatus
   source?: StepSource
   emojiRating?: string
+  scheduledFor?: string
   loggedAt?: string
+  actions?: StepActionInput[]
+}
+
+export interface CompleteActionInput {
+  actionId: string
+  completed: boolean
+  doneVolume?: string
+  doneEffort?: string
+}
+
+export interface CompleteStepBody {
+  effortRating: number
+  qualityRating: number
+  emojiRating?: string
+  actions?: CompleteActionInput[]
+}
+
+export interface UpdateStepActionBody {
+  completed: boolean
+  doneVolume?: string
+  doneEffort?: string
+}
+
+export interface ProposeStepsBody {
+  pathId: string
+  count?: number
+  context?: string
+}
+
+export interface ProposedStep {
+  name: string
+  scheduledFor: string
+  actions: StepActionInput[]
+}
+
+export interface ProposeStepsResponse {
+  steps: ProposedStep[]
 }
 
 // Biometrics

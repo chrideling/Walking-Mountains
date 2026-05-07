@@ -37,3 +37,8 @@ export enum EnergyLevel {
   HAZY = 'HAZY',    // Moderate — slightly below baseline
   FOGGY = 'FOGGY',  // Well below baseline, poor sleep/high stress
 }
+
+export enum StepStatus {
+  PLANNED = 'PLANNED',
+  DONE = 'DONE',
+}

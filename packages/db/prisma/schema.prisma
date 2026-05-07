@@ -48,6 +48,11 @@ enum EnergyLevel {
   FOGGY
 }
 
+enum StepStatus {
+  PLANNED
+  DONE
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -115,19 +120,45 @@ model Path {
 }
 
 model Step {
-  id         String     @id @default(cuid())
-  userId     String
-  pathId     String?
-  content    String
-  type       StepType
-  source     StepSource @default(MANUAL)
-  emojiRating String?
-  aiResponse String?
-  loggedAt   DateTime   @default(now())
-  createdAt  DateTime   @default(now())
+  id              String     @id @default(cuid())
+  userId          String
+  pathId          String?
+  name            String?
+  content         String?
+  type            StepType
+  status          StepStatus @default(DONE)
+  source          StepSource @default(MANUAL)
+  emojiRating     String?
+  effortRating    Int?
+  qualityRating   Int?
+  completionScore Int?
+  aiResponse      String?
+  aiProposed      Boolean    @default(false)
+  scheduledFor    DateTime?
+  completedAt     DateTime?
+  loggedAt        DateTime   @default(now())
+  createdAt       DateTime   @default(now())
 
-  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  path Path? @relation(fields: [pathId], references: [id], onDelete: SetNull)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  path    Path?        @relation(fields: [pathId], references: [id], onDelete: SetNull)
+  actions StepAction[]
+}
+
+model StepAction {
+  id           String    @id @default(cuid())
+  stepId       String
+  order        Int
+  actionName   String
+  actionVolume String?
+  actionEffort String?
+  instruction  String?
+  doneVolume   String?
+  doneEffort   String?
+  completedAt  DateTime?
+
+  step Step @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([stepId, order])
 }
 
 model BiometricSnapshot {

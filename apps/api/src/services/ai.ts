@@ -71,7 +71,11 @@ async function buildUserContext(userId: string): Promise<string> {
     .join('\n\n')
 
   const stepContext = recentSteps.length > 0
-    ? 'Recent steps:\n' + recentSteps.map((s) => `- ${s.content} (${s.type}, ${new Date(s.loggedAt).toDateString()})`).join('\n')
+    ? 'Recent steps:\n' + recentSteps.map((s) => {
+        const label = (s as any).name ?? s.content ?? 'untitled'
+        const actions = (s as any).actions?.map((a: any) => a.actionName).join(', ')
+        return `- ${label}${actions ? ': ' + actions : ''} (${s.type}, ${new Date(s.loggedAt).toDateString()})`
+      }).join('\n')
     : 'No recent steps logged.'
 
   const weatherContext = todaySnapshot?.weatherState
@@ -106,19 +110,19 @@ export async function generateMorningBrief(userId: string): Promise<string> {
 export async function generateStepResponse(
   userId: string,
   stepId: string,
-  stepContent: string,
+  stepSummary: string,
   weatherState: { energyLevel: string; narrativeLine: string } | null
 ): Promise<string> {
   const recentSteps = await prisma.step.findMany({
     where: { userId },
     orderBy: { loggedAt: 'desc' },
     take: 7,
-    select: { content: true, loggedAt: true, type: true },
+    select: { name: true, content: true, loggedAt: true, type: true },
   })
 
   const context = [
     weatherState ? `Today's energy: ${weatherState.energyLevel} — ${weatherState.narrativeLine}` : '',
-    `Recent steps: ${recentSteps.map((s) => s.content).join(', ')}`,
+    `Recent steps: ${recentSteps.map((s) => s.name ?? s.content ?? 'untitled').join(', ')}`,
   ].filter(Boolean).join('\n')
 
   const response = await client.messages.create({
@@ -128,7 +132,7 @@ export async function generateStepResponse(
     messages: [
       {
         role: 'user',
-        content: `The user just logged a step: "${stepContent}"\n\n${context}\n\nRespond in one sentence only. Be specific to the data if relevant. If there is no meaningful pattern or connection, say nothing (return empty string). Never say "great job" or generic praise.`,
+        content: `The user just logged a step: "${stepSummary}"\n\n${context}\n\nRespond in one sentence only. Be specific to the data if relevant. If there is no meaningful pattern or connection, say nothing (return empty string). Never say "great job" or generic praise.`,
       },
     ],
   })
@@ -151,7 +155,11 @@ export async function generateWeeklyCheckin(userId: string): Promise<{ summary: 
   })
 
   const stepsContext = weekSteps.length > 0
-    ? `This week's steps (${weekSteps.length} total):\n` + weekSteps.map((s) => `- ${s.content}`).join('\n')
+    ? `This week's steps (${weekSteps.length} total):\n` + weekSteps.map((s) => {
+        const label = (s as any).name ?? s.content ?? 'untitled'
+        const score = (s as any).completionScore != null ? ` (${(s as any).completionScore}% complete)` : ''
+        return `- ${label}${score}`
+      }).join('\n')
     : 'No steps logged this week.'
 
   const response = await client.messages.create({
@@ -178,6 +186,99 @@ export async function generateWeeklyCheckin(userId: string): Promise<{ summary: 
       summary: text,
       question: 'What is worth remembering about this week?',
     }
+  }
+}
+
+export interface ProposedStepAction {
+  actionName: string
+  actionVolume?: string
+  actionEffort?: string
+  instruction?: string
+}
+
+export interface ProposedStep {
+  name: string
+  scheduledFor: string
+  actions: ProposedStepAction[]
+}
+
+export async function generateProposedSteps(
+  userId: string,
+  pathId: string,
+  count: number,
+  userNote: string | null
+): Promise<ProposedStep[]> {
+  const [context, path, recentSteps] = await Promise.all([
+    buildUserContext(userId),
+    prisma.path.findFirst({
+      where: { id: pathId },
+      include: {
+        mountain: { include: { hills: { where: { summitedAt: null }, orderBy: { targetDate: 'asc' }, take: 1 } } },
+      },
+    }),
+    prisma.step.findMany({
+      where: { userId, pathId, status: 'DONE' },
+      orderBy: { loggedAt: 'desc' },
+      take: 10,
+      include: { actions: { orderBy: { order: 'asc' } } },
+    }),
+  ])
+
+  const hill = path?.mountain.hills[0]
+  const daysToHill = hill ? Math.round((new Date(hill.targetDate).getTime() - Date.now()) / 86400000) : null
+
+  const recentLoad = recentSteps.length > 0
+    ? `Recent sessions on this path:\n` + recentSteps.map((s) => {
+        const actions = s.actions.map((a) => `${a.actionName}${a.doneVolume ? ' ' + a.doneVolume : a.actionVolume ? ' ' + a.actionVolume : ''}`).join(', ')
+        return `- ${s.name ?? s.content ?? 'session'}${actions ? ': ' + actions : ''}`
+      }).join('\n')
+    : 'No previous sessions on this path.'
+
+  const today = new Date()
+  const dates = Array.from({ length: count }, (_, i) => {
+    const d = new Date(today)
+    d.setDate(d.getDate() + i + 1)
+    return d.toISOString().split('T')[0]
+  })
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1000,
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: 'user',
+        content: `Propose ${count} training sessions for the path "${path?.name ?? 'this path'}"${hill ? ` (goal: ${hill.name}, ${daysToHill} days out${hill.targetMetric ? ', target: ' + hill.targetMetric : ''})` : ''}.${userNote ? ' User note: ' + userNote : ''}
+
+${recentLoad}
+
+Schedule across these dates: ${dates.join(', ')}. Consider progression and recovery. Each session should have a clear name and 3-8 specific actions.
+
+Return ONLY a valid JSON array with exactly ${count} objects. Each object:
+{
+  "name": "Session name",
+  "scheduledFor": "YYYY-MM-DD",
+  "actions": [
+    { "actionName": "Exercise name", "actionVolume": "reps/time/distance", "actionEffort": "weight/pace/resistance", "instruction": "optional coaching cue" }
+  ]
+}
+
+No markdown, no explanation — just the JSON array.
+
+Context:
+${context}`,
+      },
+    ],
+  })
+
+  const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '[]'
+  try {
+    const cleaned = text.replace(/```json\n?|\n?```/g, '').trim()
+    const parsed = JSON.parse(cleaned)
+    if (!Array.isArray(parsed)) return []
+    return parsed.slice(0, count)
+  } catch {
+    return []
   }
 }
 
