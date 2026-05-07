@@ -3,6 +3,7 @@ dist
 build
 .env
 .env.local
+scripts/.garmin-sync.env
 .env.*.local
 *.tsbuildinfo
 
