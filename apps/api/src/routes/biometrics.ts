@@ -52,10 +52,11 @@ export async function biometricRoutes(app: FastifyInstance) {
     const date = new Date(body.date)
     date.setUTCHours(0, 0, 0, 0)
 
+    const { date: _dateStr, ...updateData } = body
     const snapshot = await prisma.biometricSnapshot.upsert({
       where: { userId_date: { userId, date } },
       create: { userId, ...body, date },
-      update: body,
+      update: updateData,
     })
 
     // Compute and store weather state

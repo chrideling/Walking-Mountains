@@ -1,6 +1,6 @@
-import garminConnectPkg from 'garmin-connect'
-
-const { GarminConnect } = garminConnectPkg as unknown as {
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
+const { GarminConnect } = require('garmin-connect') as {
   GarminConnect: new (opts: { username: string; password: string }) => {
     login: (username: string, password: string) => Promise<void>
     getSleepData: (date: Date) => Promise<unknown>
