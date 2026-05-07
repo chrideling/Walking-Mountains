@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send } from 'lucide-react'
 import { api } from '@/api/client'
-import { useAuthStore } from '@/store/auth'
 import { clsx } from 'clsx'
 
 interface Message {
@@ -10,7 +9,6 @@ interface Message {
 }
 
 export function CoachPage() {
-  const user = useAuthStore((s) => s.user)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)

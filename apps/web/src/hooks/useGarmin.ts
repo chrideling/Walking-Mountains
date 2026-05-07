@@ -39,7 +39,7 @@ export function useDisconnectGarmin() {
 export function useSyncGarmin() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (days = 7) => api.post<SyncResult>('/garmin/sync', { days }),
+    mutationFn: (days: number) => api.post<SyncResult>('/garmin/sync', { days }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['today'] })
       qc.invalidateQueries({ queryKey: ['biometrics'] })

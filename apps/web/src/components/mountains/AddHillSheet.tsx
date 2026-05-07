@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useCreateHill } from '@/hooks/useHills'
 import { Button } from '@/components/ui/Button'
-import { Input, Textarea } from '@/components/ui/Input'
+import { Input } from '@/components/ui/Input'
 
 interface AddHillSheetProps {
   mountainId: string
