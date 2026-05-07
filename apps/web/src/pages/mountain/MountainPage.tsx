@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ChevronRight, Plus } from 'lucide-react'
 import { useMountain, useUpdateMountain } from '@/hooks/useMountains'
-import { useStepStats } from '@/hooks/useSteps'
+import { useSteps } from '@/hooks/useSteps'
 import { DomainBadge } from '@/components/ui/DomainBadge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -205,9 +205,18 @@ export function MountainPage() {
   )
 }
 
-// Separate component so each path fetches its own stats independently
+// Separate component so each path fetches its own steps independently
 function PathCard({ path, onLogStep }: { path: Path; onLogStep: () => void }) {
-  const { data: stats, isLoading: statsLoading } = useStepStats({ pathId: path.id })
+  const weekAgo = new Date()
+  weekAgo.setDate(weekAgo.getDate() - 7)
+  weekAgo.setHours(0, 0, 0, 0)
+
+  const { data: steps = [], isLoading } = useSteps({ pathId: path.id, since: weekAgo.toISOString(), limit: 50 })
+
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const todaySteps = steps.filter((s) => new Date(s.loggedAt) >= todayStart)
+  const weekCount = steps.length
 
   return (
     <Card className="p-4">
@@ -221,16 +230,16 @@ function PathCard({ path, onLogStep }: { path: Path; onLogStep: () => void }) {
         </span>
       </div>
 
-      {statsLoading ? (
+      {isLoading ? (
         <div className="border-t border-stone-100 pt-3 mt-3">
           <div className="h-3 w-32 bg-stone-100 rounded animate-pulse" />
         </div>
       ) : (
         <PathStepSummary
           pathId={path.id}
-          todaySteps={stats?.todaySteps ?? []}
-          todayCount={stats?.todayCount ?? 0}
-          weekCount={stats?.weekCount ?? 0}
+          todaySteps={todaySteps}
+          todayCount={todaySteps.length}
+          weekCount={weekCount}
         />
       )}
 
