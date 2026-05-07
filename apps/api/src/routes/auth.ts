@@ -27,7 +27,7 @@ function makeTokens(app: FastifyInstance, userId: string) {
   )
   const refreshToken = app.jwt.sign(
     { id: userId, type: 'refresh' },
-    { secret: config.jwt.refreshSecret, expiresIn: config.jwt.refreshExpiresIn }
+    { secret: config.jwt.refreshSecret, expiresIn: config.jwt.refreshExpiresIn } as Parameters<typeof app.jwt.sign>[1]
   )
   return { accessToken, refreshToken }
 }
@@ -89,7 +89,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     let payload: { id: string; type: string }
     try {
-      payload = app.jwt.verify(refreshToken, { secret: config.jwt.refreshSecret }) as typeof payload
+      payload = app.jwt.verify(refreshToken, { secret: config.jwt.refreshSecret } as Parameters<typeof app.jwt.verify>[1]) as typeof payload
     } catch {
       return reply.status(401).send({ error: 'Unauthorized', message: 'Invalid refresh token', statusCode: 401 })
     }

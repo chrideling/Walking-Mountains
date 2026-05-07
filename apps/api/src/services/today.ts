@@ -1,5 +1,5 @@
 import { prisma } from '@wm/db'
-import type { TodayView, TodayViewItem } from '@wm/types'
+import type { TodayView, TodayViewItem, WeatherState } from '@wm/types'
 import { Domain } from '@wm/types'
 
 export async function assembleTodayView(userId: string): Promise<TodayView> {
@@ -31,7 +31,7 @@ export async function assembleTodayView(userId: string): Promise<TodayView> {
     }),
   ])
 
-  const weatherState = snapshot?.weatherState ?? null
+  const weatherState = (snapshot?.weatherState ?? null) as WeatherState | null
   const energyLevel = weatherState?.energyLevel ?? 'CLEAR'
   const energyNarrative = weatherState?.narrativeLine ?? 'No biometric data today — going by feel.'
 
